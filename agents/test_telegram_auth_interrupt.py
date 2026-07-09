@@ -5,7 +5,7 @@ Covers the security-critical + correctness-critical pure logic that currently ha
 ZERO tests:
   1. Session live-interrupt mailbox (add_interrupt / drain_interrupts) — empty,
      single, multi (newline-joined + cleared), second-drain -> None.
-  2. _authorized(update) — the chat-id auth gate (setup-mode allow, match, reject),
+  2. _authorized(update) — the fail-closed chat-id auth gate (missing, match, reject),
      via the module global ALLOWED_CHAT_ID (saved & restored around each case).
   3. on_text routing — lesson: prefix queues "NEW LESSON (apply this now): <body>";
      plain text with a running session queues the raw text; unauthorized -> early
@@ -20,10 +20,19 @@ import os
 import sys
 import asyncio
 import threading
+import types
 from unittest.mock import MagicMock
 from types import SimpleNamespace
 
 sys.path.insert(0, os.path.dirname(__file__))
+
+# This test covers the bridge boundary, not the macOS agent core. Stub that
+# dependency so the auth regression runs in Linux CI without PyObjC.
+agent_core_stub = types.ModuleType("agent_core")
+agent_core_stub.AgentHooks = lambda **kwargs: SimpleNamespace(**kwargs)
+agent_core_stub.run = lambda *args, **kwargs: None
+agent_core_stub._release_lock = lambda: None
+sys.modules["agent_core"] = agent_core_stub
 
 import telegram_bridge as TB
 
@@ -91,17 +100,16 @@ def _fake_update(chat_id):
 
 _saved_allowed = TB.ALLOWED_CHAT_ID
 try:
-    # setup mode: empty/falsy -> allow (so /whoami works for first-time setup)
+    # setup mode: empty/falsy -> deny every control command. /whoami is a
+    # separate unguarded handler and remains available for first-time setup.
     TB.ALLOWED_CHAT_ID = ""
-    _check(TB._authorized(_fake_update(123)) is True,
-           "ALLOWED_CHAT_ID empty -> True (setup mode)")
+    _check(TB._authorized(_fake_update(123)) is False,
+           "ALLOWED_CHAT_ID empty -> False (fail closed)")
     TB.ALLOWED_CHAT_ID = "   "  # .strip() happened at import; simulate falsy-after-strip
-    # NOTE: _authorized checks the raw value truthiness, so a whitespace-only
-    # string is truthy here. The real gate is the .strip() done at import time
-    # producing "". We test the contract: a value that is falsy -> allow.
+    # Import-time .strip() turns a whitespace-only configured value into "".
     TB.ALLOWED_CHAT_ID = ""
-    _check(TB._authorized(_fake_update(999)) is True,
-           "ALLOWED_CHAT_ID falsy -> True regardless of chat id")
+    _check(TB._authorized(_fake_update(999)) is False,
+           "ALLOWED_CHAT_ID falsy -> False regardless of chat id")
 
     # configured + match
     TB.ALLOWED_CHAT_ID = "123"
@@ -115,6 +123,33 @@ try:
     # chat id is compared as str
     _check(TB._authorized(_fake_update(123)) is True,
            "chat id compared as str against ALLOWED_CHAT_ID")
+finally:
+    TB.ALLOWED_CHAT_ID = _saved_allowed
+
+
+# ── 2b. setup-mode command surface ──────────────────────────────────────────
+def _fake_command_update(chat_id):
+    replies = []
+
+    async def _reply_text(text, *args, **kwargs):
+        replies.append(text)
+
+    message = SimpleNamespace(reply_text=_reply_text)
+    return SimpleNamespace(message=message, effective_chat=SimpleNamespace(id=chat_id)), replies
+
+
+_saved_allowed = TB.ALLOWED_CHAT_ID
+try:
+    TB.ALLOWED_CHAT_ID = ""
+    update, replies = _fake_command_update(123)
+    asyncio.run(TB.cmd_start(update, None))
+    _check(len(replies) == 1 and "Control commands are disabled" in replies[0],
+           "setup mode -> /start is denied")
+
+    update, replies = _fake_command_update(123)
+    asyncio.run(TB.cmd_whoami(update, None))
+    _check(len(replies) == 1 and "This chat id is: 123" in replies[0],
+           "setup mode -> /whoami remains available")
 finally:
     TB.ALLOWED_CHAT_ID = _saved_allowed
 

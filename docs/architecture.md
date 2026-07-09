@@ -24,9 +24,9 @@ flowchart LR
 | `agents/ax_tree.py` | Enumerates accessible macOS interface elements and assigns stable, task-local IDs. |
 | `agents/model_client.py` | Separates model-provider routing from the rest of the agent and supports controlled failover. |
 | `agents/orchestrator.py` | Turns a task into sub-goals and asks whether each one is actually achieved. |
-| `agents/executor.py` | Resolves an element ID into a system-reported coordinate, performs supported actions, and gates destructive actions. |
+| `agents/executor.py` | Resolves an element ID into a system-reported coordinate, performs supported actions, and heuristically gates destructive-looking actions using model text plus selected element metadata. |
 | `agents/agent_core.py` | Coordinates the perceive → plan → act → verify loop, locks, watchdogs, and recovery behavior. |
-| `agents/telegram_bridge.py` | Provides optional remote control and restricts commands to a configured authorized chat ID. |
+| `agents/telegram_bridge.py` | Provides optional remote control, fails closed until an authorized chat ID is configured, and exposes only `/whoami` during setup. |
 | `agents/lessons.py` | Stores concise, persistent corrective lessons between tasks. |
 
 ## Design decisions
@@ -57,4 +57,3 @@ AX Relay is local-first, but it is not “data never leaves the machine.” Task
 - Interfaces that do not expose useful Accessibility information remain difficult.
 - The remote bridge is a single process; an external watchdog handles process death but cannot guarantee correctness.
 - Verification is bounded by the state the system can observe.
-

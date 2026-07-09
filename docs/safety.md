@@ -14,8 +14,8 @@ The project ignores common secret and machine-local files, and its CI runs the s
 
 ## Operating boundaries
 
-- The remote bridge accepts commands only from the configured authorized chat ID.
-- The executor has a gate for destructive-looking actions that requires confirmation through its configured callback.
+- The remote bridge fails closed when no authorized chat ID is configured. During setup, only `/whoami` remains available; every control command is denied.
+- The executor checks both model-provided text and selected Accessibility-element metadata for destructive-looking actions, then requires confirmation through its configured callback. This is a heuristic defense-in-depth layer, not a standalone security boundary.
 - The agent treats a visual or textual claim of completion as insufficient without a verification step.
 - A watchdog can restart the bridge process after a failure; it cannot prove that a task was correct.
 
@@ -26,4 +26,3 @@ Selected providers may receive task text and Accessibility-tree observations. Op
 ## Reporting a vulnerability
 
 Do not open a public issue containing a credential, token, user identifier, screenshot, or reproduction trace with private data. Remove/rotate the sensitive value first, then report the issue with a sanitized description.
-

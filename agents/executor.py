@@ -216,20 +216,44 @@ class Executor:
 
     # -- helpers ----------------------------------------------------------
     @staticmethod
-    def _is_destructive(action: dict) -> bool:
-        blob = " ".join(str(action.get(k, "")) for k in
-                        ("thought", "text", "question", "summary")).lower()
+    def _is_destructive(action: dict, element: Optional[dict] = None) -> bool:
+        values = [action.get(k, "") for k in
+                  ("thought", "text", "question", "summary")]
+        if element is not None:
+            # The model's prose can be neutral even when the selected control is
+            # consequential (for example: thought="click the button", name="Delete").
+            # Include the observed AX metadata so the safety decision is based on
+            # the target as well as the model-supplied explanation.
+            values.extend(element.get(k, "") for k in
+                          ("name", "title", "label", "description", "value", "help", "role"))
+        blob = " ".join(str(value) for value in values).lower()
         return any(kw in blob for kw in DESTRUCTIVE_KEYWORDS)
 
     # -- main entry -------------------------------------------------------
     def execute(self, action: dict, elements: list[dict]) -> ActionResult:
         act = str(action.get("action", "")).lower().strip()
 
-        # Safety gate for destructive intents.
-        if self._is_destructive(action) and act in (
+        # Resolve the selected AX element before the gate so its observed label
+        # and metadata participate in destructive-action detection.
+        target_element: Optional[dict] = None
+        if act in ("click_element", "double_click_element"):
+            eid = action.get("element_id")
+            target_element = next((e for e in elements if e.get("id") == eid), None)
+            if target_element is None:
+                return ActionResult(
+                    False,
+                    f"Element {eid} not in list. Pick a valid number, scroll, or wait.",
+                )
+
+        # Heuristic safety gate for destructive-looking actions. It is a useful
+        # confirmation layer, not a standalone security boundary.
+        if self._is_destructive(action, target_element) and act in (
             "click_element", "double_click_element", "press_key", "type"
         ):
-            q = f"This looks destructive: {action.get('thought', act)}. Proceed?"
+            detail = str(action.get("thought") or act)
+            if target_element is not None:
+                detail += f" Target: [{target_element.get('id')}] {target_element.get('name', '(unnamed)')}"
+            q = f"This looks destructive: {detail}. Proceed?"
             if self.confirm_cb is not None:
                 if not self.confirm_cb(q):
                     return ActionResult(False, "Cancelled by user (destructive).")
@@ -242,12 +266,8 @@ class Executor:
         # -- click by element number (the main path) ----------------------
         if act in ("click_element", "double_click_element"):
             eid = action.get("element_id")
-            el = next((e for e in elements if e.get("id") == eid), None)
-            if el is None:
-                return ActionResult(
-                    False,
-                    f"Element {eid} not in list. Pick a valid number, scroll, or wait.",
-                )
+            assert target_element is not None  # resolved before the safety gate
+            el = target_element
             x, y = int(el["x"]), int(el["y"])
             _move_and_settle(x, y)
             if act == "double_click_element":
