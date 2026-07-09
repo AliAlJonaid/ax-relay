@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  AX Relay Telegram bridge daemon (LaunchAgent) — survives reboots & crashes.
+
+  SETUP: Replace every {{PROJECT_ROOT}} with your clone path, then:
+    cp scripts/com.axrelay.telegram-bridge.plist.example \
+       ~/Library/LaunchAgents/com.axrelay.telegram-bridge.plist
+    # Edit the copied file if you used a different destination name.
+    launchctl load ~/Library/LaunchAgents/com.axrelay.telegram-bridge.plist
+
+  Full Disk Access may be required for the Python binary under {{PROJECT_ROOT}}/.venv
+  when the project lives in a TCC-protected folder (e.g. ~/Documents). See README.
+
+  Uninstall:
+    launchctl unload ~/Library/LaunchAgents/com.axrelay.telegram-bridge.plist
+
+  Logs: /tmp/tg_bridge.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.axrelay.telegram-bridge</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>{{PROJECT_ROOT}}/.venv/bin/python</string>
+        <string>-u</string>
+        <string>{{PROJECT_ROOT}}/agents/telegram_bridge.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>{{PROJECT_ROOT}}/agents</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/tg_bridge.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/tg_bridge.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>{{PROJECT_ROOT}}/.venv/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>
