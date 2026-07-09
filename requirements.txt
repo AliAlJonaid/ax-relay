@@ -1,0 +1,19 @@
+# Computer-Use Agent — dependencies
+# Phase 1 needs: pyobjc (AX tree), pyautogui (input), openai (model), pillow, dotenv
+# All of these are already present in the project venv; this file pins the set
+# so the environment is reproducible.
+
+openai>=1.40
+pyautogui>=0.9.54
+pillow>=10.0
+python-dotenv>=1.0
+
+# macOS Accessibility bridge (PyObjC). The umbrella 'pyobjc' pulls the frameworks
+# we use: ApplicationServices (AX*), Cocoa/AppKit (NSWorkspace), Quartz.
+pyobjc>=10.0
+
+# Phase 3 (Telegram) — remote control:
+python-telegram-bot>=21.0
+
+# Phase 5 (Screen2AX visual fallback) — installed separately per its repo:
+#   https://github.com/MacPaw/Screen2AX

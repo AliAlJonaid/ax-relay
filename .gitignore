@@ -1,0 +1,52 @@
+# Virtual environment
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+settings.local.json
+.npmrc
+*.pem
+*.key
+*.p12
+*.pfx
+*.mobileprovision
+credentials*.json
+service-account*.json
+
+# Agent / IDE local state
+.claude/
+agents/.claude/
+.codex/
+
+# macOS
+.DS_Store
+
+# Logs and temp
+/tmp/
+*.log
+
+# LaunchAgent plists with machine-specific paths
+scripts/*.plist
+
+# Internal notes and machine-specific development artifacts.
+# Public documentation will be curated separately.
+AGENTS.md
+agents/_legacy/
+scripts/dev/
+scripts/run-gemini-agent.sh
+scripts/run-gemini-cli.sh
+CLAUDE.md
+docs/MODEL.md
+docs/PROJECT_REPORT.md
+docs/README_BACKUP.txt
+docs/STATUS.md
+docs/TEST_LOG.md
+docs/PHASE1.md
+docs/PHASE3.md
