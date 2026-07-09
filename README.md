@@ -29,7 +29,7 @@ This changes the question from “where should the model click?” to “which k
 - **Perceive → plan → act → verify** execution with task-start baselines.
 - **Send-versus-type protection** so visible pre-existing text is not mistaken for a completed send.
 - **Destructive-action gate** for configured action types.
-- **Optional Telegram bridge** restricted to one configured authorized chat ID.
+- **Optional Telegram bridge** that fails closed until one authorized chat ID is configured.
 - **Persistent corrective lessons** and an external watchdog for bounded recovery behavior.
 
 ## Repository guide
@@ -70,9 +70,10 @@ cd agents
 ../.venv/bin/python test_lessons.py
 ../.venv/bin/python test_appname_verify.py
 ../.venv/bin/python test_executor_gate.py
+../.venv/bin/python test_telegram_auth_interrupt.py
 ```
 
-These four Python suites and the public-safety scan passed locally on 2026-07-09 with Python 3.11. The GitHub Actions workflow runs the portable checks on Linux; tests that depend on live macOS Accessibility behavior remain explicitly macOS-only.
+These five Python suites and the public-safety scan passed locally on 2026-07-09 with Python 3.11. The GitHub Actions workflow runs the portable checks on Linux; tests that depend on live macOS Accessibility behavior remain explicitly macOS-only.
 
 ## Privacy and safety boundary
 
@@ -96,4 +97,3 @@ Claude/Opus assisted with architecture and reasoning. GLM-5.2, used through Clau
 ## License
 
 This project is released under the [MIT License](LICENSE).
-

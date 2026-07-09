@@ -42,9 +42,10 @@ jobs:
           python test_lessons.py
           xvfb-run -a python test_appname_verify.py
           xvfb-run -a python test_executor_gate.py
+          python test_telegram_auth_interrupt.py
 
       - name: Note skipped macOS-only tests
         run: |
           echo "Skipped on Linux CI (require PyObjC / live AX tree):"
           echo "  test_ax.py test_perception.py test_reflexion.py"
-          echo "  test_interrupt_stuck.py test_telegram_auth_interrupt.py"
+          echo "  test_interrupt_stuck.py"

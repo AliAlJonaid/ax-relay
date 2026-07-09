@@ -12,7 +12,8 @@ Lets you drive the agent from your phone while away from the Mac:
   (plain text reply)    answered to the agent when it asks a question / confirms
 
 Security: only the chat id in TELEGRAM_ALLOWED_CHAT_ID may control the agent.
-Everyone else is ignored.
+If that value is missing, control commands fail closed and only /whoami remains
+available for first-time setup.
 
 Design note — threading:
   The agent loop (agent_core.run) is synchronous and drives the mouse/keyboard.
@@ -264,18 +265,24 @@ _session: Optional[Session] = None
 # ── Auth guard ──────────────────────────────────────────────────────────────
 
 def _authorized(update: Update) -> bool:
-    if not ALLOWED_CHAT_ID:
-        return True  # not configured yet → allow (so /whoami works for setup)
-    return str(update.effective_chat.id) == ALLOWED_CHAT_ID
+    return bool(ALLOWED_CHAT_ID) and str(update.effective_chat.id) == ALLOWED_CHAT_ID
 
 
 async def _deny(update: Update) -> None:
+    if not ALLOWED_CHAT_ID:
+        await update.message.reply_text(
+            "⛔ Control commands are disabled until TELEGRAM_ALLOWED_CHAT_ID is configured. "
+            "Use /whoami to get this chat id."
+        )
+        return
     await update.message.reply_text("⛔ Not authorized.")
 
 
 # ── Command handlers ────────────────────────────────────────────────────────
 
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _authorized(update):
+        return await _deny(update)
     await update.message.reply_text(
         "🤖 Mac agent ready.\n\n"
         "/task <what to do> — run a task\n"
@@ -420,7 +427,7 @@ def main() -> None:
     app.add_handler(CommandHandler("send", cmd_send))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
 
-    who = ALLOWED_CHAT_ID or "(open — set TELEGRAM_ALLOWED_CHAT_ID to lock)"
+    who = ALLOWED_CHAT_ID or "(setup only — control commands disabled; /whoami available)"
     print("=" * 60)
     print("  TELEGRAM BRIDGE — Mac agent remote control")
     print(f"  Allowed chat: {who}")

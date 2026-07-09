@@ -4,9 +4,9 @@ executor.py.
 
 The gate is safety/security-critical and was previously UNTESTED. This file
 covers:
-  • Executor._is_destructive — every keyword, each of the 4 scanned fields,
-    case-insensitivity, substring/partial match, empty/missing fields, and
-    benign text → False.
+  • Executor._is_destructive — every keyword, model-provided fields, selected
+    AX-element metadata, case-insensitivity, empty/missing fields, and benign
+    text → False.
   • The gate inside Executor.execute — all four branches (confirm_cb False →
     cancelled; confirm_cb True → proceeds; confirm_cb None → needs_confirmation;
     destructive-but-non-gated action type → not gated) and the non-destructive
@@ -99,6 +99,16 @@ _check(E.Executor._is_destructive(
     {"summary": "empty trash bin"}), "'empty trash bin' contains 'empty trash'")
 
 
+# ── _is_destructive: selected AX metadata is part of the decision ───────────
+print("_is_destructive — selected AX metadata is scanned")
+_check(E.Executor._is_destructive(
+    {"thought": "click the button"}, _ELEMENTS[0]),
+    "neutral model wording + element name 'Delete' -> destructive")
+_check(E.Executor._is_destructive(
+    {"thought": "click the button"}, _ELEMENTS[1]) is False,
+    "neutral model wording + benign element name -> False")
+
+
 # ── _is_destructive: benign text and empty/missing fields → False ───────────
 print("_is_destructive — benign and empty/missing inputs → False")
 _check(E.Executor._is_destructive({"thought": "open Safari"}) is False,
@@ -165,6 +175,17 @@ _check(r.question is not None and "destructive" in r.question,
        "confirm_cb None → question populated and mentions destructive")
 _check("delete the file" in r.question,
        "confirm_cb None → question echoes the destructive thought")
+
+
+# ── Gate branch: neutral thought + destructive target label is still gated ──
+print("gate — selected element metadata cannot be hidden by neutral wording")
+r = ex_none.execute(
+    {"action": "click_element", "element_id": 3,
+     "thought": "click the button"}, _ELEMENTS)
+_check(r.ok is False and r.needs_confirmation is True,
+       "neutral thought targeting 'Delete' -> needs confirmation")
+_check(r.question is not None and "Delete" in r.question,
+       "confirmation question names the destructive target")
 
 
 # ── Gate branch: destructive text but action type NOT gated → not gated ─────

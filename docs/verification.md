@@ -13,6 +13,7 @@ cd agents
 ../.venv/bin/python test_lessons.py
 ../.venv/bin/python test_appname_verify.py
 ../.venv/bin/python test_executor_gate.py
+../.venv/bin/python test_telegram_auth_interrupt.py
 ```
 
 | Suite | What it exercises |
@@ -20,14 +21,15 @@ cd agents
 | `test_rate_limit_verifier.py` | Provider failover, retry limits, timeout handling, and verifier guards. |
 | `test_lessons.py` | Persistence, deduplication, and corrupt-state resilience for lessons. |
 | `test_appname_verify.py` | App-name resolution, task-start baselines, and send-versus-type safeguards. |
-| `test_executor_gate.py` | Destructive-action confirmation behavior without moving the real mouse or using the network. |
+| `test_executor_gate.py` | Destructive-action confirmation using model text and selected AX-element metadata, without moving the real mouse or using the network. |
+| `test_telegram_auth_interrupt.py` | Fail-closed Telegram authorization, setup-only `/whoami`, and interrupt routing. |
 | `check-public-safety.sh` | Detects common credential formats, personal email/home paths, sensitive files, and retired project names in Git-includable files. |
 
-These four Python suites and the public-safety scan passed locally on 2026-07-09 with Python 3.11. The GitHub Actions workflow runs the portable suites on Linux.
+These five Python suites and the public-safety scan passed locally on 2026-07-09 with Python 3.11. The GitHub Actions workflow runs the portable suites on Linux.
 
 ## macOS-only checks
 
-Additional tests cover Accessibility-tree, perception, interrupt, Reflexion, and Telegram-control behavior. They require PyObjC or a live macOS environment, so the Linux workflow intentionally does not represent them as portable CI coverage.
+Additional tests cover Accessibility-tree, perception, interrupt, and Reflexion behavior. They require PyObjC or a live macOS environment, so the Linux workflow intentionally does not represent them as portable CI coverage.
 
 ## Manual acceptance scenarios
 
@@ -40,4 +42,3 @@ Before a release, run the following on a non-sensitive test account and a dispos
 5. Force a provider failure and confirm the configured failure behavior is visible and bounded.
 
 No personal chat logs, screenshots, task history, or provider credentials are used as public evidence.
-
