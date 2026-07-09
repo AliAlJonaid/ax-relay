@@ -26,6 +26,13 @@ jobs:
           python -m pip install --upgrade pip
           grep -v '^pyobjc' requirements.txt | pip install -r /dev/stdin
 
+      - name: Provide a headless display for PyAutoGUI imports
+        run: |
+          command -v xvfb-run >/dev/null || {
+            sudo apt-get update
+            sudo apt-get install --no-install-recommends -y xvfb
+          }
+
       - name: Run portable unit tests
         working-directory: agents
         run: |
@@ -33,8 +40,8 @@ jobs:
           # Core logic — agent_core tail section skips on non-macOS (PyObjC import chain).
           python test_rate_limit_verifier.py
           python test_lessons.py
-          python test_appname_verify.py
-          python test_executor_gate.py
+          xvfb-run -a python test_appname_verify.py
+          xvfb-run -a python test_executor_gate.py
 
       - name: Note skipped macOS-only tests
         run: |
